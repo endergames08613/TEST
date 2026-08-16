@@ -1,240 +1,439 @@
-let fov = 270
-let p = {x: 0, y: 0, z: -fov, rx: 0, ry: 0, rz: 0}
-let pm = {x: 0, y: 0, z: 0}
-let faces = []
-let zt = 0
-let yt = 0
-let ny = 0
-let yt2 = 0
-let b
-let light = {x:0, y:-20, z:-10, r:255, g:255, b:255}
+let px = 0;
+let py = 0;
+let pz = 0;
+
+// Quaternion
+let qw = 1;
+let qx = 0;
+let qy = 0;
+let qz = 0;
+
+let fov = 270;
+
+// Camera angles
+let yaw = 0;
+let pitch = 0;
+
+// Locked mouse
+const mouse = {
+  x: 0,
+  y: 0,
+  locked: false
+};
+
+function use() {
+  if (mouse.locked) {
+    // Crosshair
+    ellipse(width / 2, height / 2, 5, 5);
+  }
+}
+
+function mouseClicked() {
+  if (!mouse.locked) {
+    mouse.x = mouseX;
+    mouse.y = mouseY;
+
+    resizeCanvas(windowWidth, windowHeight);
+
+    // IMPORTANT: pointer lock first
+    requestPointerLock();
+
+    // Fullscreen second
+    document.documentElement.requestFullscreen().catch((e) => {
+      console.log("Fullscreen:", e);
+    });
+  }
+}
+
+document.addEventListener(
+  'pointerlockchange',
+  lockChangeUpdate,
+  false
+);
+
+document.addEventListener(
+  'mozpointerlockchange',
+  lockChangeUpdate,
+  false
+);
+
+function lockChangeUpdate() {
+  if (
+    document.pointerLockElement === canvas ||
+    document.mozPointerLockElement === canvas
+  ) {
+    mouse.locked = true;
+
+    document.addEventListener(
+      "mousemove",
+      updatePosition,
+      false
+    );
+  } else {
+    document.removeEventListener(
+      "mousemove",
+      updatePosition,
+      false
+    );
+
+    mouse.locked = false;
+  }
+}
+function updatePosition(e) {
+
+  // Mouse X = yaw
+  yaw += e.movementX * 0.005;
+
+  // Mouse Y = pitch
+  pitch -= e.movementY * 0.005;
+
+  // Prevent looking completely upside down
+  pitch = constrain(
+    pitch,
+    -HALF_PI + 0.01,
+    HALF_PI - 0.01
+  );
+
+  // Rebuild camera rotation
+  // X = pitch
+  // Y = yaw
+  // Z = roll = 0
+  setRotation(
+    pitch,
+    yaw,
+    0
+  );
+}
+
 function setup() {
   createCanvas(400, 400);
-  fill(255)
-  noStroke()
-  light.r=random(0,255)
-  light.g=random(0,255)
-  light.b=random(0,255)
-  faces[0] = new face(0,0,30,0,0,0,random(0,255),random(0,255),random(0,255));
-  faces[1] = new face(0,20,30,0,0,0,random(0,255),random(0,255),random(0,255));
-  faces[2] = new face(0,20,-40,180,0,0,random(0,255),random(0,255),random(0,255));
+
+  setRotation(0, 0, 0);
 }
 
 function draw() {
-  background(0); 
+  background(0);
+  use();
+  if (Key("esc"))mouse.locked=false
+
+  // Test points
+  point1(0, 0, 2);
+  point1(1, 0, 2);
+  point1(0, 1, 2);
+  point1(1, 1, 2); 
   
-  if(ny>= 9999){
-    ny = 299
-  } if(ny<= -9999){
-    ny = -299
-  }
-  let d = r3(0, 0, -1, p.rx, p.ry, p.rz, 0, 0, 0);
-  let dn = ncs(d.x, d.y, d.z)
-  ellipse(dn.x,dn.y - ny,3)
-  let fwd = r3(0, 0, -1, p.rx, p.ry, p.rz, 0, 0, 0);
-  let len = Math.sqrt(fwd.x*fwd.x + fwd.y*fwd.y + fwd.z*fwd.z) || 1;
-  let dir = { x: fwd.x/len, y: fwd.y/len, z: fwd.z/len };
-  let side2 = r3(-1, 0, 0, p.rx, p.ry, p.rz, 0, 0, 0);
-  let len2 = Math.sqrt(side2.x*side2.x + side2.y*side2.y + side2.z*side2.z) || 1;
-  let dir2 = { x: side2.x/len2, y: side2.y/len2, z: side2.z/len2 };
-  let speed = 1.5; 
-  if (Key("s")) {
-    pm.x += dir.x * speed;
-    pm.z -= dir.z * speed;
-  }
-  if (Key("w")) {
-    pm.x -= dir.x * speed;
-    pm.z += dir.z * speed;
-  }
-  if (Key("d")) {
-    pm.x += dir2.x * speed; 
-    pm.z -= dir2.z * speed; 
-  }
-  if (Key("a")) { 
-    pm.x -= dir2.x * speed;
-    pm.z += dir2.z * speed; 
-  }  
-  if (Key(" ")) { 
-    pm.y += 3;
-  }
- if (Key("shift")) { 
-    pm.y -= 3;
-  }
-
-  if(Key("right")) p.rx -= 1
-  if(Key("left"))  p.rx += 1  
-
-  if(Key("up")){
-    ny+=5
-  }
-  if(Key("down")){
-    ny-=5
-  }
-  
-    if(Key("r")){
-  p.ry = 0
-  p.rz = 0
-  }
-
-faces.sort((b, a) => b.disp - a.disp);
-for (let i = 0; i < faces.length; i++) {
-  faces[i].draw();
-}
-}
-class face{
-  constructor(x,y,z,xr,yr,zr,r,g,b,m){
-    this.size=10
-    this.x=x+p.x
-    this.y=-y+p.y
-    this.z=z
-    this.xr=xr
-    this.yr=yr
-    this.zr=zr
-    this.point= []
-    this.n = []
-    this.dis = []
-    this.disp = 0
-    this.r = r
-    this.g = g
-    this.b = b
-    this.m = m
-  }
-  
-  draw(){
-    let m = 0
-    this.n[m] = r3(this.x-this.size, this.y-this.size, this.z-this.size, this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    m+=1
-    this.n[m] = r3(this.x-this.size,this.y+this.size,this.z-this.size, this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    m+=1   
-    this.n[m] = r3(this.x+this.size,this.y+this.size,this.z-this.size, this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    m+=1
-    this.n[m] = r3(this.x+this.size,this.y-this.size,this.z-this.size,this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-      m+=1
-    this.n[m] = r3(this.x,this.y,this.z-this.size-1,this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    // console.log(m,this.dis[m])
-      m+=1
-    this.n[m] = r3(this.x,this.y,this.z-this.size,this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.disp = sqrt(sq(this.n[m].x-pm.x)+sq(this.n[m].y-pm.y)+sq(this.n[m].z-pm.z))
-    // console.log(m,this.dis[m])
-    let f = ncs(pm.x, pm.y, pm.z) 
-   this.fwd = r3(0, 0, -1, this.xr, this.yr, this.xz, 0, 0, 0);
-   this.len = Math.sqrt(this.fwd.x*this.fwd.x + this.fwd.y*this.fwd.y + this.fwd.z*this.fwd.z) || 1;
-   this.dir = { x: this.fwd.x/this.len, y: this.fwd.y/this.len, z: this.fwd.z/this.len };
-    
-    if (Key("2")){
-      let m = 0
-      this.point[m] = {x:this.x-this.size+width/2,y:this.y-this.size,z:this.z-this.size+height/2}
-      m+=1
-      this.point[m] = {x:this.x-this.size+width/2,y:this.y+this.size,z:this.z-this.size+height/2}
-      m+=1   
-      this.point[m] = {x:this.x+this.size+width/2,y:this.y+this.size,z:this.z-this.size+height/2}
-      m+=1
-      this.point[m] = {x:this.x+this.size+width/2,y:this.y-this.size,z:this.z-this.size+height/2}
-      m+=1
-      this.point[m] = {x:this.x-this.size+width/2,y:this.y-this.size,z:this.z+this.size+height/2}
-      m+=1
-      this.point[m] = {x:this.x-this.size+width/2,y:this.y+this.size,z:this.z+this.size+height/2}
-      m+=1   
-      this.point[m] = {x:this.x+this.size+width/2,y:this.y+this.size,z:this.z+this.size+height/2}
-      m+=1
-      this.point[m] = {x:this.x+this.size+width/2,y:this.y-this.size,z:this.z+this.size+height/2}
-this.dirt = maths(pm.x,pm.z,this.x-this.size,this.z-this.size,this.x+this.size,this.z+this.size)
-// this.dirt2 = maths(pm.y,pm.z,x1,y1,x2,y2)
-      for(let i = 0; i <= m; i++){
-        // ellipse(this.point[i].x,this.point[i].z,2)
-      }
-    } else {
-      for(let i = 0; i <= 4; i++){
-        // ellipse(this.point[i].x,this.point[i].y,2)
-        // console.log(i,this.point[i].x,this.point[i].y)                                                                                                                                                                                      
-      }
-
-    if(this.dis[4]<=this.dis[5]&&light.r+light.g+light.b>0){
-      fill(light.r-this.r,light.g-this.g,light.b-this.b)
-    }else{
-      fill(0)
-    }
-      if(this.point[0].x <= 400&&this.point[0].x > 0||this.point[3].x <= 400&&this.point[3].x > 0&&this.point[3].x != -9999&&this.point[4].x != -9999&&this.point[3].x != 9999&&this.point[4].x != 9999){
-          beginShape(); 
-       vertex(this.point[0].x,this.point[0].y)
-       vertex(this.point[1].x,this.point[1].y)
-       vertex(this.point[2].x,this.point[2].y)
-       vertex(this.point[3].x,this.point[3].y)
-          endShape(); 
-        }
-      if(pm.x<=this.point[0].x&&pm.x>=this.point[1].x){
-        console.log("hi")
-      }
-      }
-
-    }
+  point1(0, 0, 3);
+  point1(1, 0, 3);
+  point1(0, 1, 3);
+  point1(1, 1, 3);
 }
 
-function points(x,y,z){
-  this.x=x+p.x+pm.x
-  this.y=y+p.y+pm.y
-  this.z=z+p.z+pm.z
-  this.nn = r3(this.x, this.y, this.z, p.rx, p.ry, p.rz, p.x, p.y, p.z)
-  this.nx=this.nn.x
-  this.ny=this.nn.y
-  this.nz=this.nn.z
-  this.nn = ncs(this.nx,this.ny,this.nz)
-  this.x=this.nn.x
-  this.y=this.nn.y
+function point1(x, y, z) {
 
-  return { x: this.x, y: this.y};
+  let p = ncs(x, y, z);
+
+  if (p.z <= 0) {
+    return;
+  }
+
+  ellipse(p.x, p.y, 3);
 }
 
 function ncs(x, y, z) {
-  const denom = z + fov;
-  if (denom <= 0.0001) return { x: -9999, y: -9999 };
-  const s = fov / denom;
-  // console.log(x * s, y + ny * s)
-  return { x: x * s + width / 2, y: y * s + height / 2 + ny};
+
+  // Move world relative to player
+  x -= px;
+  y -= py;
+  z -= pz;
+
+  // Inverse camera rotation
+  let p = rotateVector(
+    x,
+    y,
+    z,
+    qw,
+    -qx,
+    -qy,
+    -qz
+  );
+
+  // Behind camera
+  if (p.z <= 0) {
+    return {
+      x: 0,
+      y: 0,
+      z: p.z
+    };
+  }
+
+  // Perspective
+  let scale = fov / p.z;
+
+  let screenX =
+    width / 2 +
+    p.x * scale;
+
+  let screenY =
+    height / 2 -
+    p.y * scale;
+
+  return {
+    x: screenX,
+    y: screenY,
+    z: p.z
+  };
 }
 
+function setRotation(rx, ry, rz) {
 
-function r3(px, py, pz, ry, rx, rz, centerx, centery, centerz) {
-  let x = px - centerx;
-  let y = py - centery;
-  let z = pz - centerz;
+  let qx1 =
+    quaternionFromAxisAngle(
+      1, 0, 0, rx
+    );
 
-  // rotate X
-  let c = Math.cos(rx/180*PI);
-  let s = Math.sin(rx/180*PI);
-  let y1 = y * c - z * s;
-  let z1 = y * s + z * c;
-  y = y1; z = z1;
+  let qy1 =
+    quaternionFromAxisAngle(
+      0, 1, 0, ry
+    );
 
-  // rotate Y
-  c = Math.cos(ry/180*PI);
-  s = Math.sin(ry/180*PI);
-  let x1 = x * c + z * s;
-  let z2 = -x * s + z * c;
-  x = x1; z = z2;
+  let qz1 =
+    quaternionFromAxisAngle(
+      0, 0, 1, rz
+    );
 
-  // rotate Z
-  c = Math.cos(rz/180*PI);
-  s = Math.sin(rz/180*PI);
-  let x2 = x * c - y * s;
-  let y2 = x * s + y * c;
-  x = x2; y = y2;
+  let q = quaternionMultiply(
+    qx1.w,
+    qx1.x,
+    qx1.y,
+    qx1.z,
 
-  return { x: x + centerx, y: y + centery, z: z + centerz };
+    qy1.w,
+    qy1.x,
+    qy1.y,
+    qy1.z
+  );
+
+  q = quaternionMultiply(
+    q.w,
+    q.x,
+    q.y,
+    q.z,
+
+    qz1.w,
+    qz1.x,
+    qz1.y,
+    qz1.z
+  );
+
+  qw = q.w;
+  qx = q.x;
+  qy = q.y;
+  qz = q.z;
+
+  normalizeQuaternion();
 }
 
+function rotateQuaternion(rx, ry, rz) {
 
+  // X rotation
+  let qx1 =
+    quaternionFromAxisAngle(
+      1, 0, 0, rx
+    );
+
+  // Y rotation
+  let qy1 =
+    quaternionFromAxisAngle(
+      0, 1, 0, ry
+    );
+
+  // Z rotation
+  let qz1 =
+    quaternionFromAxisAngle(
+      0, 0, 1, rz
+    );
+
+  // Apply X
+  let q = quaternionMultiply(
+    qw,
+    qx,
+    qy,
+    qz,
+
+    qx1.w,
+    qx1.x,
+    qx1.y,
+    qx1.z
+  );
+
+  qw = q.w;
+  qx = q.x;
+  qy = q.y;
+  qz = q.z;
+
+  // Apply Y
+  q = quaternionMultiply(
+    qw,
+    qx,
+    qy,
+    qz,
+
+    qy1.w,
+    qy1.x,
+    qy1.y,
+    qy1.z
+  );
+
+  qw = q.w;
+  qx = q.x;
+  qy = q.y;
+  qz = q.z;
+
+  // Apply Z
+  q = quaternionMultiply(
+    qw,
+    qx,
+    qy,
+    qz,
+
+    qz1.w,
+    qz1.x,
+    qz1.y,
+    qz1.z
+  );
+
+  qw = q.w;
+  qx = q.x;
+  qy = q.y;
+  qz = q.z;
+
+  normalizeQuaternion();
+}
+
+function quaternionFromAxisAngle(
+  ax,
+  ay,
+  az,
+  angle
+) {
+
+  let half = angle / 2;
+
+  let s = sin(half);
+
+  return {
+    w: cos(half),
+    x: ax * s,
+    y: ay * s,
+    z: az * s
+  };
+}
+
+function quaternionMultiply(
+  w1, x1, y1, z1,
+  w2, x2, y2, z2
+) {
+
+  return {
+
+    w:
+      w1 * w2 -
+      x1 * x2 -
+      y1 * y2 -
+      z1 * z2,
+
+    x:
+      w1 * x2 +
+      x1 * w2 +
+      y1 * z2 -
+      z1 * y2,
+
+    y:
+      w1 * y2 -
+      x1 * z2 +
+      y1 * w2 +
+      z1 * x2,
+
+    z:
+      w1 * z2 +
+      x1 * y2 -
+      y1 * x2 +
+      z1 * w2
+  };
+}
+
+function normalizeQuaternion() {
+
+  let length = sqrt(
+    qw * qw +
+    qx * qx +
+    qy * qy +
+    qz * qz
+  );
+
+  qw /= length;
+  qx /= length;
+  qy /= length;
+  qz /= length;
+}
+
+function rotateVector(
+  x,
+  y,
+  z,
+  w,
+  qx,
+  qy,
+  qz
+) {
+
+  // Quaternion * vector
+  let ix =
+    w * x +
+    qy * z -
+    qz * y;
+
+  let iy =
+    w * y +
+    qz * x -
+    qx * z;
+
+  let iz =
+    w * z +
+    qx * y -
+    qy * x;
+
+  let iw =
+    -qx * x -
+    qy * y -
+    qz * z;
+
+  // Result * inverse quaternion
+  return {
+
+    x:
+      ix * w +
+      iw * -qx +
+      iy * -qz -
+      iz * -qy,
+
+    y:
+      iy * w +
+      iw * -qy +
+      iz * -qx -
+      ix * -qz,
+
+    z:
+      iz * w +
+      iw * -qz +
+      ix * -qy -
+      iy * -qx
+  };
+}
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+}
+Key()
 function Key(info){
   if (info === "ctrl") { if (keyIsDown(17)) return true; }
   if (info === "control") { if (keyIsDown(17)) return true; }
