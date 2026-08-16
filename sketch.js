@@ -8,7 +8,7 @@ let qx = 0;
 let qy = 0;
 let qz = 0;
 
-let fov = 270;
+let fov = 600;
 
 // Camera angles
 let yaw = 0;
