@@ -12,16 +12,16 @@ let wall = 1
 let light = {x:0, y:-20, z:10, r:255, g:255, b:255}
 let mouseSens = 0.5;  // mouse sensitivity
 let mx = 90
+let img;
+
+function preload() {
+  img = loadImage("why.png");
+}
 function setup() {
   createCanvas(400, 400);
   fill(255)
   noStroke()
-  faces[0] = new face(0,0,0,0,0,0,0,0,0);
-  faces[1] = new face(0,-10,-10,0,90,255,255,0,0);
-  faces[2] = new face(0,-10,10,0,90,0,0,20,0);
-  faces[3] = new face(10,-10,0,0,90,0,255,0,0);
-  faces[4] = new face(-10,-10,0,0,90,0,0,0,0);
-
+tf(0,0,10,0,0,0,0,256)
 
 }
 const mouse = {
@@ -126,9 +126,39 @@ for (let i = 0; i < faces.length; i++) {
   faces[i].draw();
 }
 }
-class face{
-  constructor(x,y,z,xr,yr,zr,r,g,b,m){
-    this.size=1
+function tf(tx, ty, tz, txr, tyr, tzr, id,res) {
+
+  img.resize(res, res);
+  img.loadPixels();
+
+  for (let y = 0; y < res; y++) {
+    for (let x = 0; x < res; x++) {
+
+      const i = (y * res + x) * 4;
+
+      const r = img.pixels[i];
+      const g = img.pixels[i + 1];
+      const b = img.pixels[i + 2];
+
+      faces.push(
+        new face(
+          tx + x * 2,
+          -(ty + y * 2),
+          tz,
+          txr,
+          tyr,
+          tzr,
+          r,
+          g,
+          b,
+          1
+        )
+      );
+    }
+  }
+}class face{
+  constructor(x,y,z,xr,yr,zr,r,g,b,s,m){
+    this.size=s
     this.x=x
     this.y=-y
     this.z=z
@@ -145,58 +175,101 @@ class face{
     this.m = m
   }
   
-  draw(){
-    let m = 0
-    this.n[m] = r3(this.x-this.size, this.y-this.size, this.z, this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    m+=1
-    this.n[m] = r3(this.x-this.size,this.y+this.size,this.z, this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    m+=1   
-    this.n[m] = r3(this.x+this.size,this.y+this.size,this.z, this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    m+=1
-    this.n[m] = r3(this.x+this.size,this.y-this.size,this.z,this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-      // m+=1
-    // this.n[m] = r3(this.x,this.y,this.z-1,this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    // this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    // this.point[m] = points(this.n[m].x,this.n[m].y,this.n[m].z)
-    // // console.log(m,this.dis[m])
-    //   m+=1
-    // this.n[m] = r3(this.x,this.y,this.z,this.xr, this.yr, this.zr, this.x, this.y, this.z)
-    // this.dis[m] = sqrt(sq(this.n[m].x-light.x)+sq(this.n[m].y-light.y)+sq(this.n[m].z-light.z))
-    // this.disp = sqrt(sq(this.n[m].x-pm.x)+sq(this.n[m].y-pm.y)+sq(this.n[m].z-pm.z))
-    // // console.log(m,this.dis[m])
+draw(){
+  let m = 0;
 
-      for(let i = 0; i <= 4; i++){
-        // ellipse(this.point[i].x,this.point[i].y,2)
-        // console.log(i,this.point[i].x,this.point[i].y)                                                                                                                                                                                      
-      }
+  this.n[m] = r3(
+    this.x-this.size,
+    this.y-this.size,
+    this.z,
+    this.xr,this.yr,this.zr,
+    this.x,this.y,this.z
+  );
+  this.dis[m] = sqrt(
+    sq(this.n[m].x-light.x) +
+    sq(this.n[m].y-light.y) +
+    sq(this.n[m].z-light.z)
+  );
+  this.point[m] = points(
+    this.n[m].x,
+    this.n[m].y,
+    this.n[m].z
+  );
+  m++;
 
-    // if(this.dis[4]<=this.dis[5]&&light.r+light.g+light.b>0){
-    if(this.dis[4]==this.dis[4]){
-      fill(light.r-this.r,light.g-this.g,light.b-this.b)
-    }else{
-      fill(0)
-    }
-if (this.point.some(p => p.x !== "no")) {
-  beginShape();
-  vertex(this.point[0].x, this.point[0].y);
-  vertex(this.point[1].x, this.point[1].y);
-  vertex(this.point[2].x, this.point[2].y);
-  vertex(this.point[3].x, this.point[3].y);
-  endShape(CLOSE);
-}          
-      if(pm.x<=this.point[0].x&&pm.x>=this.point[1].x){
-      }
-      }
+  this.n[m] = r3(
+    this.x-this.size,
+    this.y+this.size,
+    this.z,
+    this.xr,this.yr,this.zr,
+    this.x,this.y,this.z
+  );
+  this.dis[m] = sqrt(
+    sq(this.n[m].x-light.x) +
+    sq(this.n[m].y-light.y) +
+    sq(this.n[m].z-light.z)
+  );
+  this.point[m] = points(
+    this.n[m].x,
+    this.n[m].y,
+    this.n[m].z
+  );
+  m++;
 
-    }
+  this.n[m] = r3(
+    this.x+this.size,
+    this.y+this.size,
+    this.z,
+    this.xr,this.yr,this.zr,
+    this.x,this.y,this.z
+  );
+  this.dis[m] = sqrt(
+    sq(this.n[m].x-light.x) +
+    sq(this.n[m].y-light.y) +
+    sq(this.n[m].z-light.z)
+  );
+  this.point[m] = points(
+    this.n[m].x,
+    this.n[m].y,
+    this.n[m].z
+  );
+  m++;
+
+  this.n[m] = r3(
+    this.x+this.size,
+    this.y-this.size,
+    this.z,
+    this.xr,this.yr,this.zr,
+    this.x,this.y,this.z
+  );
+  this.dis[m] = sqrt(
+    sq(this.n[m].x-light.x) +
+    sq(this.n[m].y-light.y) +
+    sq(this.n[m].z-light.z)
+  );
+  this.point[m] = points(
+    this.n[m].x,
+    this.n[m].y,
+    this.n[m].z
+  );
+
+  // USE THE ACTUAL RGB FROM THE TEXTURE
+  fill(this.r, this.g, this.b);
+
+  if (
+    this.point[0].x !== "no" &&
+    this.point[1].x !== "no" &&
+    this.point[2].x !== "no" &&
+    this.point[3].x !== "no"
+  ) {
+    beginShape();
+    vertex(this.point[0].x, this.point[0].y);
+    vertex(this.point[1].x, this.point[1].y);
+    vertex(this.point[2].x, this.point[2].y);
+    vertex(this.point[3].x, this.point[3].y);
+    endShape(CLOSE);
+  }
+}    }
 
 
 function points(x,y,z){
